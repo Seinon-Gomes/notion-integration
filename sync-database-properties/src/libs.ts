@@ -10,73 +10,98 @@ const headers = {
     'Notion-Version': '2022-06-28'
 };
 
-async function checkSyncSourceProperty(databaseId: string) {
-    const url = `https://api.notion.com/v1/databases/${databaseId}`;
-    const response = await axios.get(url, { headers });
-    const properties = response.data.properties;
+interface NotionDBProp {
+    id: string;
+    type: string;
+    [key: string]: any;
+}
 
+interface NotionDB {
+    object: string;
+    id: string;
+    properties: { [key: string]: NotionDBProp };
+}
+
+interface NotionPage {
+    id: string;
+    properties: { [key: string]: NotionDBProp };
+}
+
+export async function fetchDBProps(databaseId: string): Promise<{ [key: string]: NotionDBProp }> {
+    const url = `https://api.notion.com/v1/databases/${databaseId}`;
+    try {
+        const response = await axios.get<NotionDB>(url, { headers });
+        return response.data.properties;
+    } catch (error) {
+        console.error('Error fetching database properties:', error);
+        throw error;
+    }
+}
+
+export function ensureSyncSourceProp(properties: { [key: string]: NotionDBProp }) {
     if (!properties.SyncSource || properties.SyncSource.type !== 'relation') {
         throw new Error('SyncSourceという名前のRelationプロパティが見つかりません。');
     }
 }
 
-async function getRollupProperties(databaseId: string) {
-    const url = `https://api.notion.com/v1/databases/${databaseId}`;
-    const response = await axios.get(url, { headers });
-    const properties = response.data.properties;
+interface SyncPropName {
+    srcPropName: string;
+    destPropName: string;
+}
 
-    const rollupProperties = [];
-    for (const propName in properties) {
-        const prop = properties[propName];
+export function extractSyncPropNames(properties: { [key: string]: NotionDBProp }): SyncPropName[] {
+    const syncPropNames: SyncPropName[] = [];
+    for (const srcPropName in properties) {
+        const prop = properties[srcPropName];
         if (prop.type === 'rollup' && prop.rollup.function === 'show_original') {
-            const originalPropName = propName.replace('_src', '');
-            if (properties[originalPropName]) {
-                rollupProperties.push({ rollup: propName, original: originalPropName });
+            const destPropName = srcPropName.replace('_src', '');
+            if (properties[destPropName]) {
+                syncPropNames.push({ srcPropName: srcPropName, destPropName: destPropName });
             }
         }
     }
-
-    return rollupProperties;
+    return syncPropNames;
 }
-// TODO: 次、ここから見始める
-async function updateProperties(databaseId: string, rollupProperties: any[]) {
+
+export async function syncPropValues(databaseId: string, syncPropNames: SyncPropName[]) {
     const url = `https://api.notion.com/v1/databases/${databaseId}/query`;
-    const response = await axios.post(url, {}, { headers });
-    const pages = response.data.results;
+    try {
+        const response = await axios.post<{ results: NotionPage[] }>(url, {}, { headers });
+        const pages = response.data.results;
 
-    for (const page of pages) {
-        const pageId = page.id;
-        const properties = page.properties;
+        for (const page of pages) {
+            const pageId = page.id;
+            const props = page.properties;
 
-        const updates = {};
-        for (const { rollup, original } of rollupProperties) {
-            if (properties[rollup] && properties[original]) {
-                updates[original] = properties[rollup];
+            const propsToUpdate: { [key: string]: any } = {};
+            for (const { srcPropName: srcPropName, destPropName: destPropName } of syncPropNames) {
+                if (props[srcPropName] && props[destPropName]) {
+                    const datatype: string = props[srcPropName]['rollup']['array'][0]['type'];
+                    propsToUpdate[destPropName] = props[srcPropName]['rollup']['array'][0][datatype];
+                }
+            }
+
+            if (Object.keys(propsToUpdate).length > 0) {
+                await syncPagePropValues(pageId, propsToUpdate);
             }
         }
-
-        if (Object.keys(updates).length > 0) {
-            await updatePageProperties(pageId, updates);
-        }
-    }
-}
-
-async function updatePageProperties(pageId: string, updates: any) {
-    const url = `https://api.notion.com/v1/pages/${pageId}`;
-    const payload = { properties: updates };
-    await axios.patch(url, payload, { headers });
-}
-
-async function main() {
-    const databaseId = 'your_database_id';
-
-    try {
-        await checkSyncSourceProperty(databaseId);
-        const rollupProperties = await getRollupProperties(databaseId);
-        await updateProperties(databaseId, rollupProperties);
     } catch (error) {
-        console.error('エラーが発生しました:', error.message);
+        console.error('Error updating properties:', error);
+        throw error;
     }
 }
 
-main();
+export async function syncPagePropValues(pageId: string, propsToUpdate: { [key: string]: any }) {
+    const url = `https://api.notion.com/v1/pages/${pageId}`;
+    console.log('pageId:', pageId);
+    const payload = { properties: propsToUpdate };
+    console.log('Updating page properties:', payload);
+    try {
+        await axios.patch(url, payload, { headers });
+        console.log('Page properties successfully updated.')
+    } catch (error) {
+        console.error('Error updating page properties:', error);
+        throw error;
+    }
+}
+

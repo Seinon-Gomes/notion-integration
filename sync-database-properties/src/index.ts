@@ -1,19 +1,20 @@
-import { getDatabaseItems, updateItemDate } from './libs';
 
-const databaseId = 'your_database_id';
-const pageId = 'your_page_id';
-const datePropertyName = 'your_date_property_name';
-const date = '2023-06-21T00:00:00Z';
+import { fetchDBProps, ensureSyncSourceProp, extractSyncPropNames, syncPropValues } from './libs';
+import { config } from './config';
 
 async function main() {
+    const databaseId = config.databaseId;
+    if (!databaseId) {
+        console.error('config.jsonにdatabaseIdが見つかりません。');
+        return;
+    }
     try {
-        const items = await getDatabaseItems(databaseId);
-        console.log('Database items:', items);
-
-        const updatedItem = await updateItemDate(pageId, date, datePropertyName);
-        console.log('Updated item:', updatedItem);
+        const properties = await fetchDBProps(databaseId);
+        ensureSyncSourceProp(properties);
+        const syncPropNames = extractSyncPropNames(properties);
+        await syncPropValues(databaseId, syncPropNames);
     } catch (error) {
-        console.error('Error:', error);
+        console.error('エラーが発生しました:', error);
     }
 }
 
