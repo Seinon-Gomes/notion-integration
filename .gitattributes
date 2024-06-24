@@ -1,0 +1,5 @@
+# 共通のLFS設定を属性として定義
+[attr]lfs filter=lfs diff=lfs merge=lfs -text
+
+*.exe lfs
+*.png lfs
