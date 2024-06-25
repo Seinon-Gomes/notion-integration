@@ -42,7 +42,7 @@ export async function fetchDBProps(databaseId: string): Promise<{ [key: string]:
 
 export function ensureSyncSourceProp(properties: { [key: string]: NotionDBProp }) {
     if (!properties.SyncSource || properties.SyncSource.type !== 'relation') {
-        throw new Error('SyncSourceという名前のRelationプロパティが見つかりません。');
+        throw new Error('No Relation Property named "SyncSource"');
     }
 }
 
