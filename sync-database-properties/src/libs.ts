@@ -1,9 +1,11 @@
 import axios from 'axios';
-import * as dotenv from 'dotenv';
+import { config } from './config';
 
-dotenv.config();
-
-const NOTION_API_KEY = process.env.NOTION_API_KEY;
+const notionApiKeyEnvVar = config.notionApiKeyEnvVar;
+const NOTION_API_KEY = process.env[notionApiKeyEnvVar];
+if (!NOTION_API_KEY) {
+    throw new Error(`Environment variable ${notionApiKeyEnvVar} is not set.`);
+}
 const headers = {
     'Authorization': `Bearer ${NOTION_API_KEY}`,
     'Content-Type': 'application/json',

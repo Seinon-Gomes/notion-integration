@@ -1,3 +1,4 @@
 {
     "databaseId": "your-database-id"
+    "notionApiKeyEnvVar": "MY_NOTION_API_KEY"
 }

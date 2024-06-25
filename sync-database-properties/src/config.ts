@@ -3,6 +3,7 @@ import * as path from 'path';
 
 interface Config {
     databaseId: string;
+    notionApiKeyEnvVar: string;
 }
 
 function loadConfig(): Config {
