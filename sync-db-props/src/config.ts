@@ -8,7 +8,13 @@ interface Config {
 
 function loadConfig(): Config {
     try {
-        const configPath = path.resolve(__dirname, '../config.json');
+        let configPath: string;
+        if (process.env.NODE_ENV === 'dev') {
+            configPath = path.resolve(__dirname, '../config.json');
+        } else {
+            const execDir = path.dirname(process.execPath);
+            configPath = path.resolve(execDir, '/config.json');
+        }
         const rawData = fs.readFileSync(configPath, 'utf-8');
         return JSON.parse(rawData);
     } catch (error) {

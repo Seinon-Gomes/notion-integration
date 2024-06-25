@@ -6,20 +6,26 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
-    "pkg": "tsc && pkg dist/index.js --targets node16-linux-x64,node16-win-x64,node16-macos-x64 --output output/sync-db-props"
+    "dev": "cross-env NODE_ENV=dev ts-node src/index.ts",
+    "nexe": "nexe",
+    "package:windows": "nexe dist/index.js --target windows-x64-14.15.3 --output output/sync-db-props-win.exe",
+    "package:linux": "nexe dist/index.js --target linux-x64-14.15.3 --output output/sync-db-props-linux",
+    "package:mac": "nexe dist/index.js --target macos-x64-14.15.3 --output output/sync-db-props-macos",
+    "package": "tsc && npm run package:windows && npm run package:linux && npm run package:mac"
   },
   "keywords": [],
-  "author": "",
+  "author": "Shun Hasegawa",
   "license": "ISC",
   "description": "",
   "dependencies": {
     "axios": "^1.7.2",
+    "nexe": "^4.0.0-rc.6",
     "pkg": "^5.8.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.2"
   },
   "devDependencies": {
-    "@types/node": "^20.14.7"
+    "@types/node": "^20.14.7",
+    "cross-env": "^7.0.3"
   }
 }
