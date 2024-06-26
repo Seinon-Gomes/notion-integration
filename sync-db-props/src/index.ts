@@ -3,18 +3,25 @@ import { fetchDBProps, ensureSyncSourceProp, extractSyncPropNames, syncPropValue
 import { config } from './config';
 
 async function main() {
-    const databaseId = config.databaseId;
-    if (!databaseId) {
-        console.error('No databaseId in config.json');
+    const databaseIdList = config.databaseIdList;
+    if (!databaseIdList) {
+        console.error('No databaseIdList in config.json');
         return;
     }
-    try {
-        const properties = await fetchDBProps(databaseId);
-        ensureSyncSourceProp(properties);
-        const syncPropNames = extractSyncPropNames(properties);
-        await syncPropValues(databaseId, syncPropNames);
-    } catch (error) {
-        console.error('Error Occured', error);
+    for (const databaseId of databaseIdList) {
+        // databaseIdが空でないstringであることを確認
+        if (!databaseId || typeof databaseId !== 'string') {
+            console.error('Invalid databaseId in config.json: ', databaseId);
+            continue;
+        }
+        try {
+            const properties = await fetchDBProps(databaseId);
+            ensureSyncSourceProp(properties);
+            const syncPropNames = extractSyncPropNames(properties);
+            await syncPropValues(databaseId, syncPropNames);
+        } catch (error) {
+            console.error('Error Occured', error);
+        }
     }
 }
 

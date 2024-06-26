@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 interface Config {
-    databaseId: string;
+    databaseIdList: string[];
     notionApiKeyEnvVar: string;
 }
 
